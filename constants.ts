@@ -5,8 +5,10 @@ export const MONTHS = [
 
 export const SOURCES = ['Embalse 1', 'Embalse 2'];
 
-// Rutas a los archivos CSV en /public/data/
+// BASE_URL es '/' en desarrollo y '/Embalses-Santiago-de-Cuba/' en produccion
+const base = import.meta.env.BASE_URL;
+
 export const CSV_FILES: Record<string, string> = {
-  [SOURCES[0]]: '/data/embalse1.csv',
-  [SOURCES[1]]: '/data/embalse2.csv',
+  [SOURCES[0]]: base + 'data/embalse1.csv',
+  [SOURCES[1]]: base + 'data/embalse2.csv',
 };
