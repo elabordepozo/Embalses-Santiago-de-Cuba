@@ -1,0 +1,5 @@
+{
+  "name": "Cuadro de Mando Hidrológico",
+  "description": "Un cuadro de mando interactivo para visualizar los datos históricos del nivel de los embalses. Analice tendencias, compare años y supervise las reservas de agua actuales.",
+  "requestFramePermissions": []
+}
