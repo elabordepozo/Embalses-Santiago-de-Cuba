@@ -9,80 +9,85 @@ interface KPICardProps {
   gradientTo: string;
   borderColor: string;
   variation?: number;
-  progress?: number; // 0-100
+  progress?: number;
   subtitle?: string;
 }
 
 const KPICard: React.FC<KPICardProps> = ({
   title, value, unit, icon, gradientFrom, gradientTo, borderColor, variation, progress, subtitle
 }) => {
-  const variationColor = variation !== undefined
-    ? variation > 0 ? 'text-emerald-400' : variation < 0 ? 'text-red-400' : 'text-slate-400'
-    : '';
-  const variationSign = variation !== undefined && variation > 0 ? '+' : '';
+  const isPositive = variation !== undefined && variation > 0;
+  const isNegative = variation !== undefined && variation < 0;
+  const variationColor = isPositive ? '#34d399' : isNegative ? '#f87171' : '#94a3b8';
+  const variationSign = isPositive ? '+' : '';
 
   const progressColor = progress !== undefined
-    ? progress >= 75 ? '#22d3ee'
-    : progress >= 40 ? '#f59e0b'
-    : '#ef4444'
+    ? progress >= 75 ? '#22d3ee' : progress >= 40 ? '#f59e0b' : '#ef4444'
     : '#22d3ee';
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border p-5 shadow-xl transition-transform duration-200 hover:-translate-y-1"
+      className="kpi-card relative overflow-hidden rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-default select-none"
       style={{
-        background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
-        borderColor: borderColor,
+        background: `linear-gradient(145deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+        border: `1px solid ${borderColor}40`,
+        boxShadow: `0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`,
       }}
     >
-      {/* Glow orb decoration */}
+      {/* Glow orb */}
       <div
-        className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20 blur-2xl"
-        style={{ background: borderColor }}
+        className="absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none"
+        style={{ background: borderColor, opacity: 0.12, filter: 'blur(28px)' }}
+      />
+      {/* Borde superior con acento de color */}
+      <div
+        className="absolute top-0 left-4 right-4 h-px rounded-full"
+        style={{ background: `linear-gradient(90deg, transparent, ${borderColor}80, transparent)` }}
       />
 
       <div className="flex items-start justify-between mb-3">
         <div
-          className="p-2.5 rounded-xl"
-          style={{ background: 'rgba(255,255,255,0.1)', color: borderColor }}
+          className="p-2 sm:p-2.5 rounded-xl"
+          style={{ background: `${borderColor}18`, color: borderColor, border: `1px solid ${borderColor}30` }}
         >
           {icon}
         </div>
         {variation !== undefined && (
-          <span className={`text-xs font-bold px-2 py-1 rounded-full ${variationColor} bg-slate-900/40`}>
-            {variationSign}{variation.toFixed(2)} hm³
+          <span
+            className="text-xs font-bold px-2 py-1 rounded-lg"
+            style={{ background: `${variationColor}15`, color: variationColor, border: `1px solid ${variationColor}30` }}
+          >
+            {variationSign}{variation.toFixed(1)}
           </span>
         )}
       </div>
 
       <div className="mt-1">
-        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">{title}</p>
-        <p className="text-3xl font-black text-white mt-1 leading-none">
-          {variation !== undefined ? (
-            <span className={variationColor}>{variationSign}{value}</span>
-          ) : value}
-          <span className="text-sm font-semibold text-slate-400 ml-1.5">{unit}</span>
+        <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-1">{title}</p>
+        <p className="font-black text-white leading-none flex items-baseline flex-wrap gap-x-1" style={{ fontSize: 'clamp(1.1rem, 3.5vw, 1.9rem)' }}>
+          {variation !== undefined
+            ? <span style={{ color: variationColor }}>{variationSign}{value}</span>
+            : value}
+          <span className="text-xs sm:text-sm font-semibold text-slate-400 ml-1.5">{unit}</span>
         </p>
-        {subtitle && <p className="text-slate-500 text-xs mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-slate-500 text-xs mt-1.5">{subtitle}</p>}
       </div>
 
-      {/* Progress bar */}
       {progress !== undefined && (
-        <div className="mt-4">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-slate-400">Nivel actual</span>
-            <span className="text-xs font-bold" style={{ color: progressColor }}>{progress.toFixed(1)}%</span>
-          </div>
-          <div className="h-2 rounded-full bg-slate-900/50 overflow-hidden">
+        <div className="mt-3 sm:mt-4">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.6)' }}>
             <div
-              className="h-full rounded-full transition-all duration-700"
+              className="h-full rounded-full transition-all duration-1000"
               style={{
                 width: `${Math.min(progress, 100)}%`,
-                background: `linear-gradient(90deg, ${progressColor}aa, ${progressColor})`,
-                boxShadow: `0 0 8px ${progressColor}88`,
+                background: `linear-gradient(90deg, ${progressColor}99, ${progressColor})`,
+                boxShadow: `0 0 10px ${progressColor}66`,
               }}
             />
           </div>
+          <p className="text-right text-xs font-bold mt-1" style={{ color: progressColor }}>
+            {progress.toFixed(1)}%
+          </p>
         </div>
       )}
     </div>
