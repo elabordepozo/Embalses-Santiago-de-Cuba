@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/Embalses-Santiago-de-Cuba/sw.js', { scope: '/Embalses-Santiago-de-Cuba/' })})}

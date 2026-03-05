@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fondo -->
+  <rect width="512" height="512" rx="80" fill="#0f172a"/>
+  <!-- Olas del agua -->
+  <path d="M64 320 Q128 290 192 320 Q256 350 320 320 Q384 290 448 320 L448 420 Q384 450 320 420 Q256 390 192 420 Q128 450 64 420 Z" fill="#0ea5e9" opacity="0.9"/>
+  <path d="M64 360 Q128 330 192 360 Q256 390 320 360 Q384 330 448 360 L448 460 Q384 490 320 460 Q256 430 192 460 Q128 490 64 460 Z" fill="#0284c7" opacity="0.7"/>
+  <!-- Presa / embalse -->
+  <rect x="220" y="180" width="72" height="160" rx="6" fill="#94a3b8"/>
+  <rect x="200" y="170" width="112" height="20" rx="4" fill="#cbd5e1"/>
+  <!-- Nivel del agua dentro de la presa -->
+  <rect x="224" y="260" width="64" height="76" rx="4" fill="#38bdf8" opacity="0.8"/>
+  <!-- Indicador de nivel -->
+  <rect x="210" y="200" width="8" height="4" rx="2" fill="#f1f5f9"/>
+  <rect x="210" y="215" width="8" height="4" rx="2" fill="#f1f5f9"/>
+  <rect x="210" y="230" width="8" height="4" rx="2" fill="#f1f5f9"/>
+  <rect x="210" y="245" width="8" height="4" rx="2" fill="#38bdf8"/>
+  <rect x="210" y="260" width="8" height="4" rx="2" fill="#38bdf8"/>
+  <!-- Texto -->
+  <text x="256" y="490" text-anchor="middle" font-family="Inter, sans-serif" font-size="38" font-weight="700" fill="#e2e8f0">SCU</text>
+</svg>
