@@ -118,9 +118,9 @@ const ExportBtn: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 const StyledSelect: React.FC<{ value:string; onChange:(v:string)=>void; children:React.ReactNode; minWidth?:string }> = ({
   value, onChange, children, minWidth='140px'
 }) => (
-  <div className="relative" style={{ minWidth }}>
+  <div className="relative" style={{ minWidth: minWidth === '100%' ? undefined : minWidth, width: minWidth === '100%' ? '100%' : undefined }}>
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl text-sm font-semibold outline-none cursor-pointer"
+      className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-xl text-sm font-semibold outline-none cursor-pointer"
       style={{ background:'rgba(15,23,42,0.9)', border:'1px solid rgba(6,182,212,0.3)', color:'#22d3ee' }}>
       {children}
     </select>
@@ -132,6 +132,247 @@ const StyledSelect: React.FC<{ value:string; onChange:(v:string)=>void; children
   </div>
 );
 
+// ─── Icono de filtros / ajustes ───────────────────────────────────────────────
+const IconFilter: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+  </svg>
+);
+
+// ─── Panel de controles (reutilizado en ribbon desktop y drawer móvil) ────────
+const ControlsPanel: React.FC<{
+  sourceValue: string;
+  onSourceChange: (v:string) => void;
+  mode: ComparisonMode;
+  onModeChange: (m:ComparisonMode) => void;
+  params: ComparisonParams;
+  onParams: (p:Partial<ComparisonParams>) => void;
+  availableYears: number[];
+  compact?: boolean;
+}> = ({ sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, compact }) => {
+  const decades = getDecades(availableYears);
+  const lastYear = availableYears[availableYears.length - 1] ?? new Date().getFullYear();
+
+  return (
+    <div className={compact ? 'flex flex-col gap-5' : 'flex flex-wrap items-center gap-2 pb-3 pt-1'}>
+
+      {/* Fuente */}
+      <div className={compact ? 'flex flex-col gap-1.5' : 'flex items-center gap-1.5'}>
+        <span className={`text-xs text-slate-500 font-semibold ${compact ? '' : 'whitespace-nowrap'}`}>📍 Fuente</span>
+        <StyledSelect value={sourceValue} onChange={onSourceChange} minWidth={compact ? '100%' : '160px'}>
+          <option value="all"  style={{ background:'#0f172a' }}>🌊 Provincia completa</option>
+          {SOURCES.map(s => (
+            <option key={s} value={s} style={{ background:'#0f172a' }}>💧 {s}</option>
+          ))}
+        </StyledSelect>
+      </div>
+
+      {!compact && <div className="w-px h-6 bg-slate-700 hidden sm:block"/>}
+
+      {/* Modo de comparación */}
+      <div className={compact ? 'flex flex-col gap-1.5' : 'flex items-center gap-1.5'}>
+        <span className={`text-xs text-slate-500 font-semibold ${compact ? '' : 'whitespace-nowrap'}`}>📊 Modo de análisis</span>
+        <StyledSelect value={mode} onChange={v => onModeChange(v as ComparisonMode)} minWidth={compact ? '100%' : '175px'}>
+          {COMP_MODES.map(m => (
+            <option key={m.id} value={m.id} style={{ background:'#0f172a' }}>{m.icon} {m.label}</option>
+          ))}
+        </StyledSelect>
+        {compact && (
+          <p className="text-xs text-slate-600 italic">{COMP_MODES.find(m => m.id === mode)?.desc}</p>
+        )}
+      </div>
+
+      {/* Parámetros dinámicos según modo */}
+      <div className={compact ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-center gap-2'}>
+        {compact && mode !== 'ultimos-n' && (
+          <span className="text-xs text-slate-500 font-semibold">⚙️ Parámetros</span>
+        )}
+
+        {/* anio-historico: un año */}
+        {mode === 'anio-historico' && (
+          <div className={compact ? 'flex flex-col gap-1' : 'flex items-center gap-1.5'}>
+            {!compact && <span className="text-xs text-slate-500 whitespace-nowrap">Año</span>}
+            <StyledSelect value={String(params.year)} onChange={v => onParams({ year:+v })} minWidth={compact ? '100%' : '90px'}>
+              {[...availableYears].reverse().map(y => (
+                <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
+              ))}
+            </StyledSelect>
+          </div>
+        )}
+
+        {/* ultimos-n: cuántos años */}
+        {mode === 'ultimos-n' && (
+          <div className={compact ? 'flex flex-col gap-2' : 'flex items-center gap-1.5 flex-wrap'}>
+            {compact && <span className="text-xs text-slate-500 font-semibold">⚙️ Número de años</span>}
+            {!compact && <span className="text-xs text-slate-500 whitespace-nowrap">Últimos</span>}
+            <div className={`flex gap-2 ${compact ? '' : ''}`}>
+              {[5,10,15,20].map(n => (
+                <button key={n} onClick={() => onParams({ nYears:n })}
+                  className={`${compact ? 'flex-1' : 'px-2.5'} py-1.5 rounded-lg text-xs font-bold transition-all`}
+                  style={params.nYears===n ? {
+                    background:'linear-gradient(135deg,#06b6d4,#0e7490)', color:'#fff',
+                    boxShadow:'0 0 12px rgba(6,182,212,0.4)'
+                  } : { background:'rgba(51,65,85,0.5)', color:'#64748b' }}>
+                  {n} {compact ? 'años' : ''}
+                </button>
+              ))}
+            </div>
+            {!compact && <span className="text-xs text-slate-500">años (hasta {lastYear})</span>}
+          </div>
+        )}
+
+        {/* anio-anio: dos selectores */}
+        {mode === 'anio-anio' && (
+          <div className={compact ? 'flex flex-col gap-2' : 'flex items-center gap-1.5 flex-wrap'}>
+            <div className={`flex items-center gap-2 ${compact ? '' : ''}`}>
+              <StyledSelect value={String(params.yearA)} onChange={v => onParams({ yearA:+v })} minWidth={compact ? '0' : '90px'}>
+                {[...availableYears].reverse().map(y => (
+                  <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
+                ))}
+              </StyledSelect>
+              <span className="text-xs text-slate-400 flex-shrink-0">vs.</span>
+              <StyledSelect value={String(params.yearB)} onChange={v => onParams({ yearB:+v })} minWidth={compact ? '0' : '90px'}>
+                {[...availableYears].reverse().map(y => (
+                  <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
+                ))}
+              </StyledSelect>
+            </div>
+          </div>
+        )}
+
+        {/* decada: selector de década */}
+        {mode === 'decada' && (
+          <div className={compact ? 'flex flex-col gap-1' : 'flex items-center gap-1.5'}>
+            {!compact && <span className="text-xs text-slate-500 whitespace-nowrap">Década</span>}
+            <StyledSelect value={String(params.decade)} onChange={v => onParams({ decade:+v })} minWidth={compact ? '100%' : '110px'}>
+              {decades.map(d => (
+                <option key={d} value={d} style={{ background:'#0f172a' }}>Años {d}s</option>
+              ))}
+            </StyledSelect>
+          </div>
+        )}
+
+        {/* periodo: desde / hasta */}
+        {mode === 'periodo' && (
+          <div className={compact ? 'flex flex-col gap-2' : 'flex items-center gap-1.5 flex-wrap'}>
+            <div className="flex items-center gap-2">
+              {!compact && <span className="text-xs text-slate-500 whitespace-nowrap">Desde</span>}
+              <StyledSelect value={String(params.fromYear)} onChange={v => onParams({ fromYear:+v })} minWidth={compact ? '0' : '90px'}>
+                {availableYears.map(y => (
+                  <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
+                ))}
+              </StyledSelect>
+              <span className="text-xs text-slate-500 flex-shrink-0">{compact ? '—' : 'hasta'}</span>
+              <StyledSelect value={String(params.toYear)} onChange={v => onParams({ toYear:+v })} minWidth={compact ? '0' : '90px'}>
+                {[...availableYears].reverse().map(y => (
+                  <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
+                ))}
+              </StyledSelect>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Descripción del modo activo (solo desktop) */}
+      {!compact && (
+        <div className="ml-auto hidden lg:flex items-center">
+          <span className="text-xs text-slate-600 italic">
+            {COMP_MODES.find(m => m.id === mode)?.desc}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Drawer de controles (móvil) ──────────────────────────────────────────────
+const ControlDrawer: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  sourceValue: string;
+  onSourceChange: (v:string) => void;
+  mode: ComparisonMode;
+  onModeChange: (m:ComparisonMode) => void;
+  params: ComparisonParams;
+  onParams: (p:Partial<ComparisonParams>) => void;
+  availableYears: number[];
+  chartTitle: string;
+}> = ({ open, onClose, sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, chartTitle }) => {
+  if (!open) return null;
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className="drawer-overlay-enter fixed inset-0 z-50"
+        style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(2px)' }}
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div
+        className="drawer-enter fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
+        style={{
+          background:'rgba(7,12,26,0.98)',
+          border:'1px solid rgba(6,182,212,0.2)',
+          borderBottom:'none',
+          boxShadow:'0 -8px 40px rgba(0,0,0,0.6)',
+          paddingBottom:'env(safe-area-inset-bottom, 0px)',
+          maxHeight:'80vh',
+          overflowY:'auto',
+        }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full" style={{ background:'rgba(148,163,184,0.25)' }}/>
+        </div>
+
+        <div className="px-5 pt-2 pb-6">
+          {/* Header del drawer */}
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="font-bold text-white text-base">Configurar análisis</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Vista activa: <span className="text-cyan-400 font-semibold">{chartTitle}</span></p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl transition-all active:scale-90"
+              style={{ background:'rgba(51,65,85,0.5)', color:'#64748b' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Controles */}
+          <ControlsPanel
+            sourceValue={sourceValue}
+            onSourceChange={onSourceChange}
+            mode={mode}
+            onModeChange={onModeChange}
+            params={params}
+            onParams={onParams}
+            availableYears={availableYears}
+            compact
+          />
+
+          {/* Botón aplicar */}
+          <button
+            onClick={onClose}
+            className="w-full mt-6 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
+            style={{
+              background:'linear-gradient(135deg,#06b6d4,#0e7490)',
+              color:'#fff',
+              boxShadow:'0 0 20px rgba(6,182,212,0.35)',
+            }}
+          >
+            ✓ Aplicar y cerrar
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
 // ─── LISTÓN SUPERIOR DE CONTROLES ────────────────────────────────────────────
 const TopRibbon: React.FC<{
   sourceValue: string;
@@ -142,10 +383,9 @@ const TopRibbon: React.FC<{
   onParams: (p:Partial<ComparisonParams>) => void;
   availableYears: number[];
   lastUpdated: Date;
-}> = ({ sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, lastUpdated }) => {
-  const decades = getDecades(availableYears);
-  const lastYear = availableYears[availableYears.length - 1] ?? new Date().getFullYear();
-
+  onOpenDrawer: () => void;
+  chartTitle: string;
+}> = ({ sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, lastUpdated, onOpenDrawer, chartTitle }) => {
   return (
     <div className="sticky top-0 z-30 w-full" style={{
       background: 'rgba(4,8,20,0.97)',
@@ -160,15 +400,15 @@ const TopRibbon: React.FC<{
         {/* Fila 1: logo + título + estado */}
         <div className="flex items-center justify-between gap-3 py-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width:'56px', height:'56px', background:'rgba(255,255,255,0.95)', padding:'6px', boxShadow:'0 0 16px rgba(6,182,212,0.3)' }}>
+            <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width:'44px', height:'44px', background:'rgba(255,255,255,0.95)', padding:'5px', boxShadow:'0 0 16px rgba(6,182,212,0.3)' }}>
               <img src={`${import.meta.env.BASE_URL}INRH.png`} alt="INRH" style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
             </div>
             <div className="min-w-0">
               <h1 className="font-black text-white tracking-tight leading-tight text-sm sm:text-base lg:text-lg truncate">
                 Cuadro de Mando{' '}
-                <span className="gradient-text hidden sm:inline">Hidrológico</span>
+                <span className="gradient-text">Hidrológico</span>
               </h1>
-              <p className="text-xs text-slate-500 hidden sm:block">Embalses · Santiago de Cuba</p>
+              <p className="text-xs text-slate-500 truncate">Embalses · Santiago de Cuba</p>
             </div>
           </div>
 
@@ -182,124 +422,38 @@ const TopRibbon: React.FC<{
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"/>
               <span className="text-xs text-emerald-400 font-semibold hidden sm:inline">En línea</span>
             </div>
+
+            {/* Botón filtros — solo en móvil */}
+            <button
+              onClick={onOpenDrawer}
+              className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all active:scale-90"
+              style={{ background:'rgba(6,182,212,0.15)', border:'1px solid rgba(6,182,212,0.35)', color:'#22d3ee' }}
+            >
+              <IconFilter/>
+              <span className="text-xs font-bold">Filtros</span>
+            </button>
           </div>
         </div>
 
-        {/* Fila 2: controles */}
-        <div className="flex flex-wrap items-center gap-2 pb-3 pt-1">
+        {/* Fila 2: controles — solo en desktop */}
+        <div className="hidden lg:flex flex-wrap items-center gap-2 pb-3 pt-1">
+          <ControlsPanel
+            sourceValue={sourceValue}
+            onSourceChange={onSourceChange}
+            mode={mode}
+            onModeChange={onModeChange}
+            params={params}
+            onParams={onParams}
+            availableYears={availableYears}
+          />
+        </div>
 
-          {/* Fuente */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-slate-500 font-semibold whitespace-nowrap">📍 Fuente</span>
-            <StyledSelect value={sourceValue} onChange={onSourceChange} minWidth="160px">
-              <option value="all"  style={{ background:'#0f172a' }}>🌊 Provincia completa</option>
-              {SOURCES.map(s => (
-                <option key={s} value={s} style={{ background:'#0f172a' }}>💧 {s}</option>
-              ))}
-            </StyledSelect>
-          </div>
-
-          <div className="w-px h-6 bg-slate-700 hidden sm:block"/>
-
-          {/* Modo de comparación */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-slate-500 font-semibold whitespace-nowrap">📊 Análisis</span>
-            <StyledSelect value={mode} onChange={v => onModeChange(v as ComparisonMode)} minWidth="175px">
-              {COMP_MODES.map(m => (
-                <option key={m.id} value={m.id} style={{ background:'#0f172a' }}>{m.icon} {m.label}</option>
-              ))}
-            </StyledSelect>
-          </div>
-
-          {/* Parámetros dinámicos según modo */}
-          <div className="flex flex-wrap items-center gap-2">
-
-            {/* anio-historico: un año */}
-            {mode === 'anio-historico' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 whitespace-nowrap">Año</span>
-                <StyledSelect value={String(params.year)} onChange={v => onParams({ year:+v })} minWidth="90px">
-                  {[...availableYears].reverse().map(y => (
-                    <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
-                  ))}
-                </StyledSelect>
-              </div>
-            )}
-
-            {/* ultimos-n: cuántos años */}
-            {mode === 'ultimos-n' && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs text-slate-500 whitespace-nowrap">Últimos</span>
-                <div className="flex gap-1">
-                  {[5,10,15,20].map(n => (
-                    <button key={n} onClick={() => onParams({ nYears:n })}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                      style={params.nYears===n ? {
-                        background:'linear-gradient(135deg,#06b6d4,#0e7490)', color:'#fff',
-                        boxShadow:'0 0 12px rgba(6,182,212,0.4)'
-                      } : { background:'rgba(51,65,85,0.5)', color:'#64748b' }}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs text-slate-500">años (hasta {lastYear})</span>
-              </div>
-            )}
-
-            {/* anio-anio: dos selectores */}
-            {mode === 'anio-anio' && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <StyledSelect value={String(params.yearA)} onChange={v => onParams({ yearA:+v })} minWidth="90px">
-                  {[...availableYears].reverse().map(y => (
-                    <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
-                  ))}
-                </StyledSelect>
-                <span className="text-xs text-slate-400">vs.</span>
-                <StyledSelect value={String(params.yearB)} onChange={v => onParams({ yearB:+v })} minWidth="90px">
-                  {[...availableYears].reverse().map(y => (
-                    <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
-                  ))}
-                </StyledSelect>
-              </div>
-            )}
-
-            {/* decada: selector de década */}
-            {mode === 'decada' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 whitespace-nowrap">Década</span>
-                <StyledSelect value={String(params.decade)} onChange={v => onParams({ decade:+v })} minWidth="110px">
-                  {decades.map(d => (
-                    <option key={d} value={d} style={{ background:'#0f172a' }}>Años {d}s</option>
-                  ))}
-                </StyledSelect>
-              </div>
-            )}
-
-            {/* periodo: desde / hasta */}
-            {mode === 'periodo' && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs text-slate-500 whitespace-nowrap">Desde</span>
-                <StyledSelect value={String(params.fromYear)} onChange={v => onParams({ fromYear:+v })} minWidth="90px">
-                  {availableYears.map(y => (
-                    <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
-                  ))}
-                </StyledSelect>
-                <span className="text-xs text-slate-500">hasta</span>
-                <StyledSelect value={String(params.toYear)} onChange={v => onParams({ toYear:+v })} minWidth="90px">
-                  {[...availableYears].reverse().map(y => (
-                    <option key={y} value={y} style={{ background:'#0f172a' }}>{y}</option>
-                  ))}
-                </StyledSelect>
-              </div>
-            )}
-          </div>
-
-          {/* Descripción del modo activo */}
-          <div className="ml-auto hidden lg:flex items-center">
-            <span className="text-xs text-slate-600 italic">
-              {COMP_MODES.find(m => m.id === mode)?.desc}
-            </span>
-          </div>
+        {/* Badge modo activo — solo en móvil/tablet */}
+        <div className="lg:hidden flex items-center gap-2 pb-2.5">
+          <span className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+            style={{ background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.2)', color:'#22d3ee' }}>
+            {COMP_MODES.find(m => m.id === mode)?.icon} {chartTitle}
+          </span>
         </div>
       </div>
     </div>
@@ -313,6 +467,7 @@ const App: React.FC = () => {
   const [selectedSources, setSelectedSources] = useState<string[]>([...SOURCES]);
   const [lastUpdated,     setLastUpdated]     = useState(new Date());
   const [activeTab,       setActiveTab]       = useState<'charts'|'table'>('charts');
+  const [drawerOpen,      setDrawerOpen]      = useState(false);
 
   // ── Modo de comparación ──────────────────────────────────────────────────
   const [compMode,   setCompMode]   = useState<ComparisonMode>('anio-historico');
@@ -619,6 +774,22 @@ const App: React.FC = () => {
         onParams={updateParams}
         availableYears={availableYears}
         lastUpdated={lastUpdated}
+        onOpenDrawer={() => setDrawerOpen(true)}
+        chartTitle={chartTitle}
+      />
+
+      {/* Drawer de controles móvil */}
+      <ControlDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        sourceValue={sourceDropdownValue}
+        onSourceChange={handleSourceChange}
+        mode={compMode}
+        onModeChange={setCompMode}
+        params={compParams}
+        onParams={updateParams}
+        availableYears={availableYears}
+        chartTitle={chartTitle}
       />
 
       {/* ── Contenido principal ─────────────────────────────────────── */}
@@ -795,9 +966,10 @@ const App: React.FC = () => {
           {[
             {id:'charts',label:'Gráficas', icon:<IconChartLine/>, action:()=>setActiveTab('charts')},
             {id:'table', label:'Tabla',    icon:<IconTable/>,     action:()=>setActiveTab('table')},
+            {id:'filter',label:'Filtros',  icon:<IconFilter/>,    action:()=>setDrawerOpen(true)},
             {id:'export',label:'Exportar', icon:<IconDownload/>,  action:handleExportCSV},
           ].map(item=>{
-            const active=item.id===activeTab;
+            const active = item.id === activeTab || (item.id === 'filter' && drawerOpen);
             return (
               <button key={item.id} onClick={item.action}
                 className="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs font-semibold transition-all active:scale-90"
