@@ -9,7 +9,15 @@ import {
   IconChartLine, IconTrendingUp, IconTrendingDown, IconStack2, IconDropletHalf2,
   IconDownload, IconWater, IconGauge, IconTable, IconRefresh, IconDam,
 } from './components/Icons';
-import MapPlaceholder from './components/MapPlaceholder';
+
+// ─── Icono de mapa ────────────────────────────────────────────────────────────
+const IconMap: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+    <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+  </svg>
+);
+import ReservoirMap from './components/ReservoirMap';
 
 // ─── Colores ──────────────────────────────────────────────────────────────────
 const SOURCE_COLORS: Record<string, string> = {
@@ -385,7 +393,8 @@ const TopRibbon: React.FC<{
   lastUpdated: Date;
   onOpenDrawer: () => void;
   chartTitle: string;
-}> = ({ sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, lastUpdated, onOpenDrawer, chartTitle }) => {
+  activeTab: string;
+}> = ({ sourceValue, onSourceChange, mode, onModeChange, params, onParams, availableYears, lastUpdated, onOpenDrawer, chartTitle, activeTab }) => {
   return (
     <div className="sticky top-0 z-30 w-full" style={{
       background: 'rgba(4,8,20,0.97)',
@@ -450,10 +459,17 @@ const TopRibbon: React.FC<{
 
         {/* Badge modo activo — solo en móvil/tablet */}
         <div className="lg:hidden flex items-center gap-2 pb-2.5">
-          <span className="text-xs px-2.5 py-1 rounded-lg font-semibold"
-            style={{ background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.2)', color:'#22d3ee' }}>
-            {COMP_MODES.find(m => m.id === mode)?.icon} {chartTitle}
-          </span>
+          {activeTab === 'map' ? (
+            <span className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+              style={{ background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.2)', color:'#22d3ee' }}>
+              🗺️ Vista de mapa
+            </span>
+          ) : (
+            <span className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+              style={{ background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.2)', color:'#22d3ee' }}>
+              {COMP_MODES.find(m => m.id === mode)?.icon} {chartTitle}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -466,8 +482,9 @@ const App: React.FC = () => {
   const [availableYears,  setAvailableYears]  = useState<number[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([...SOURCES]);
   const [lastUpdated,     setLastUpdated]     = useState(new Date());
-  const [activeTab,       setActiveTab]       = useState<'charts'|'table'>('charts');
+  const [activeTab,       setActiveTab]       = useState<'map'|'charts'|'table'>('map');
   const [drawerOpen,      setDrawerOpen]      = useState(false);
+  const [selectedReservoir, setSelectedReservoir] = useState<string | null>(null);
 
   // ── Modo de comparación ──────────────────────────────────────────────────
   const [compMode,   setCompMode]   = useState<ComparisonMode>('anio-historico');
@@ -776,6 +793,7 @@ const App: React.FC = () => {
         lastUpdated={lastUpdated}
         onOpenDrawer={() => setDrawerOpen(true)}
         chartTitle={chartTitle}
+        activeTab={activeTab}
       />
 
       {/* Drawer de controles móvil */}
@@ -794,13 +812,62 @@ const App: React.FC = () => {
 
       {/* ── Contenido principal ─────────────────────────────────────── */}
       <div className="relative max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 pt-5 pb-20 lg:pb-8">
+
+        {/* ══ VISTA MAPA (tab = 'map') ══════════════════════════════════ */}
+        {activeTab === 'map' && (
+          <div className="flex flex-col gap-5">
+            {/* Header de sección */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <span className="text-cyan-400"><IconMap/></span>
+                  Embalses de Santiago de Cuba
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Pulsa sobre un embalse para ver su popup · Haz clic en "Ver datos" para el análisis completo</p>
+              </div>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.2)', color:'#22d3ee' }}>
+                {`${12} embalses`}
+              </div>
+            </div>
+
+            {/* Mapa principal */}
+            <div className="rounded-2xl overflow-hidden glass"
+              style={{ height:'calc(100svh - 220px)', minHeight:'420px', boxShadow:'0 4px 40px rgba(0,0,0,0.4)' }}>
+              <ReservoirMap
+                baseUrl={import.meta.env.BASE_URL}
+                onSelect={name => {
+                  setSelectedReservoir(name);
+                  // Aquí irá la navegación al detalle (a construir)
+                  // Por ahora selecciona la fuente y va a gráficas
+                  const src = SOURCES.find(s => s === name);
+                  if (src) {
+                    setSelectedSources([src]);
+                    setActiveTab('charts');
+                  }
+                }}
+              />
+            </div>
+
+            {/* Mini leyenda */}
+            <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ background:'#22d3ee' }}/>
+                Embalse — pulsa para datos
+              </div>
+              <div className="ml-auto text-slate-700 italic">
+                Datos cartográficos: OpenStreetMap / CARTO
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══ VISTA GRÁFICAS + TABLA (tabs 'charts' / 'table') ═════════ */}
+        {activeTab !== 'map' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           {/* ── SIDEBAR ─────────────────────────────────────────────── */}
           <aside className="lg:col-span-1 flex flex-col gap-5 order-2 lg:order-1">
-
-            {/* Mapa */}
-            <MapPlaceholder/>
 
             {/* Exportar */}
             <button onClick={handleExportCSV}
@@ -953,6 +1020,7 @@ const App: React.FC = () => {
             </div>
           </main>
         </div>
+        )} {/* fin activeTab !== 'map' */}
 
         <footer className="mt-8 text-center" style={{borderTop:'1px solid rgba(148,163,184,0.06)',paddingTop:'1.5rem'}}>
           <p className="text-xs text-slate-700">Cuadro de Mando Hidrológico · Embalses de Santiago de Cuba · {new Date().getFullYear()}</p>
@@ -964,10 +1032,11 @@ const App: React.FC = () => {
         <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(6,182,212,0.4),rgba(168,85,247,0.4),transparent)'}}/>
         <div className="flex items-stretch">
           {[
-            {id:'charts',label:'Gráficas', icon:<IconChartLine/>, action:()=>setActiveTab('charts')},
-            {id:'table', label:'Tabla',    icon:<IconTable/>,     action:()=>setActiveTab('table')},
-            {id:'filter',label:'Filtros',  icon:<IconFilter/>,    action:()=>setDrawerOpen(true)},
-            {id:'export',label:'Exportar', icon:<IconDownload/>,  action:handleExportCSV},
+            {id:'map',    label:'Mapa',     icon:<IconMap/>,       action:()=>setActiveTab('map')},
+            {id:'charts', label:'Gráficas', icon:<IconChartLine/>, action:()=>setActiveTab('charts')},
+            {id:'table',  label:'Tabla',    icon:<IconTable/>,     action:()=>setActiveTab('table')},
+            {id:'filter', label:'Filtros',  icon:<IconFilter/>,    action:()=>setDrawerOpen(true)},
+            {id:'export', label:'Exportar', icon:<IconDownload/>,  action:handleExportCSV},
           ].map(item=>{
             const active = item.id === activeTab || (item.id === 'filter' && drawerOpen);
             return (
@@ -975,7 +1044,7 @@ const App: React.FC = () => {
                 className="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs font-semibold transition-all active:scale-90"
                 style={{color:active?'#22d3ee':'#475569',position:'relative'}}>
                 {active&&<div style={{position:'absolute',top:0,left:'20%',right:'20%',height:'2px',background:'linear-gradient(90deg,transparent,#22d3ee,transparent)',borderRadius:'0 0 4px 4px'}}/>}
-                {item.icon}<span>{item.label}</span>
+                {item.icon}<span style={{fontSize:'9px'}}>{item.label}</span>
               </button>
             );
           })}
